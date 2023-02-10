@@ -1,0 +1,31 @@
+{
+    "name": "codewiser/http-cache-control",
+    "description": "Http Cache Control layer for Laravel",
+    "type": "library",
+    "keywords": ["Laravel", "Cache-Control", "HTTP"],
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Codewiser\\HttpCacheControl\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Codewiser\\HttpCacheControl\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "pm",
+            "email": "pm@101media.ru"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0",
+        "laravel/framework": "^8.0|^9.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "fakerphp/faker": "^1.21"
+    }
+}
