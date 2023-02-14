@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 trait InvalidatesCache
 {
-    protected static function bootHasCache(): void
+    protected static function bootInvalidatesCache(): void
     {
         static::saved(function (CacheControlled $object) {
             $object->cache()->invalidate();
