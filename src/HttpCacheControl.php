@@ -224,7 +224,7 @@ class HttpCacheControl implements Responsable
          *      get fresh headers values.
          */
         $response = $this->getResponse($request);
-        if ($response instanceof Responsable) {
+        while ($response instanceof Responsable) {
             $response = $response->toResponse($request);
         }
         // Update cache with actual values
