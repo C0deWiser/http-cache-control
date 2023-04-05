@@ -40,6 +40,7 @@ class HttpCacheControl implements Responsable
 
     /**
      * Construct with Class.
+     * @deprecated
      */
     public static function index(string $class): HttpCacheControl
     {
@@ -48,10 +49,16 @@ class HttpCacheControl implements Responsable
 
     /**
      * Construct with Model.
+     * @deprecated
      */
     public static function show(CacheControlled $model): HttpCacheControl
     {
         return new static($model);
+    }
+
+    public static function for(string|CacheControlled $class): HttpCacheControl
+    {
+        return new static(is_string($class) ? new $class : $class);
     }
 
     public function __construct(CacheControlled $model)
