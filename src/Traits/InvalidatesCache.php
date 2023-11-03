@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  * Invalidate cache on model change.
  *
  * @mixin Model
+ * @deprecated
  */
 trait InvalidatesCache
 {

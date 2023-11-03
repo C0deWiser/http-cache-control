@@ -6,6 +6,7 @@ use Codewiser\HttpCacheControl\TaggedCache;
 
 /**
  * Object with tagged cache.
+ * @deprecated
  */
 interface CacheControlled
 {

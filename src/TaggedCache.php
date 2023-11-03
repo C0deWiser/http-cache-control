@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Tagged cache helper
+ * @deprecated
  */
 class TaggedCache
 {

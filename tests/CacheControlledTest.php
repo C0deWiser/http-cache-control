@@ -6,6 +6,7 @@ namespace Codewiser\HttpCacheControl\Tests;
 use Codewiser\HttpCacheControl\HttpCacheControl;
 use Codewiser\HttpCacheControl\MockCachedControlled;
 use Faker\Factory;
+use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\TestCase;
 
 class CacheControlledTest extends TestCase

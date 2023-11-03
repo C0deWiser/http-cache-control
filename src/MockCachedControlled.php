@@ -5,6 +5,9 @@ namespace Codewiser\HttpCacheControl;
 
 use Codewiser\HttpCacheControl\Contracts\CacheControlled;
 
+/**
+ * @deprecated
+ */
 class MockCachedControlled implements CacheControlled
 {
     protected string $etag;

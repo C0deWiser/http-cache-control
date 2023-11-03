@@ -13,23 +13,16 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 /**
  * Examines Cache-Control headers and builds proper Response.
+ * @deprecated
  */
 class HttpCacheControl implements Responsable
 {
     protected CacheControlled $model;
-
     protected Closure $response;
-
     protected ResponseHeaderBag $headers;
-
     protected ?TaggedCache $cache = null;
-
-    /**
-     * @var Closure|bool|null
-     */
-    protected $etagResolver = null;
+    protected Closure|bool|null $etagResolver = null;
     protected ?Closure $lastModifiedResolver = null;
-
     protected ?DateTimeInterface $expire = null;
     protected array $tags = [];
 
@@ -40,6 +33,7 @@ class HttpCacheControl implements Responsable
 
     /**
      * Construct with Class.
+     *
      * @deprecated
      */
     public static function index(string $class): HttpCacheControl
@@ -49,6 +43,7 @@ class HttpCacheControl implements Responsable
 
     /**
      * Construct with Model.
+     *
      * @deprecated
      */
     public static function show(CacheControlled $model): HttpCacheControl
@@ -139,6 +134,7 @@ class HttpCacheControl implements Responsable
 
     /**
      * @param Request $request
+     *
      * @return Responsable|BaseResponse
      */
     protected function getResponse(Request $request)
@@ -206,7 +202,7 @@ class HttpCacheControl implements Responsable
         $lastModifiedKey = 'last_modified';
 
         $options = [
-            'etag' => $cache->get($etagKey),
+            'etag'          => $cache->get($etagKey),
             'last_modified' => $cache->get($lastModifiedKey)
         ];
 
