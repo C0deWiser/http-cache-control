@@ -16,6 +16,7 @@ class CacheControl implements Responsable
     protected int $private = 0;
     protected bool|Closure $etag;
     protected bool|Closure $lastModified;
+    protected bool $content;
     protected Closure $locale;
     protected DateInterval|int|null $ttl = null;
 
@@ -42,7 +43,7 @@ class CacheControl implements Responsable
                 $cache = $cache->cache();
             } else {
                 throw new InvalidArgumentException(__(':Model should implement :contract', [
-                    'model' => get_class($cache),
+                    'model'    => get_class($cache),
                     'contract' => Cacheable::class
                 ]));
             }
@@ -112,11 +113,16 @@ class CacheControl implements Responsable
      *
      * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Modified-Since
      */
-    public function lastModified(Closure $closure): static
+    public function ifModifiedSince(Closure $closure): static
     {
         $this->lastModified = $closure;
 
         return $this;
+    }
+
+    public function lastModified(Closure $closure): static
+    {
+        return $this->ifModifiedSince($closure);
     }
 
     /**
@@ -129,16 +135,31 @@ class CacheControl implements Responsable
      *
      * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-None-Match
      */
-    public function etag(bool|Closure $closure = true): static
+    public function ifNoneMatch(bool|Closure $closure = true): static
     {
         $this->etag = $closure;
 
         return $this;
     }
 
-    protected function response($request): BaseResponse
+    public function etag(bool|Closure $closure = true): static
     {
-        $response = call_user_func($this->response, $request);
+        return $this->ifNoneMatch($closure);
+    }
+
+    /**
+     * Cache and reuse entire response content.
+     */
+    public function content(bool $content = true): static
+    {
+        $this->content = $content;
+
+        return $this;
+    }
+
+    protected function response($request, ?string $content): BaseResponse
+    {
+        $response = $content ?? call_user_func($this->response, $request);
 
         while ($response instanceof Responsable) {
             $response = $response->toResponse($request);
@@ -164,11 +185,16 @@ class CacheControl implements Responsable
 
         $k_etag = $key.'/etag';
         $k_last = $key.'/last_modified';
+        $k_page = $key.'/content';
 
-        $options = [
-            'etag'          => $this->cache->get($k_etag),
-            'last_modified' => $this->cache->get($k_last)
-        ];
+        $options = [];
+
+        if ($this->etag) {
+            $options['etag'] = $this->cache->get($k_etag);
+        }
+        if ($this->lastModified) {
+            $options['last_modified'] = $this->cache->get($k_last);
+        }
 
         /**
          * 1. Make empty response,
@@ -181,8 +207,15 @@ class CacheControl implements Responsable
         if ($response->isNotModified($request)) {
 
             // Touch cache
-            $this->cache->set($k_etag, $options['etag'], $this->ttl);
-            $this->cache->set($k_last, $options['last_modified'], $this->ttl);
+            if ($this->content) {
+                $this->cache->set($k_page, $this->cache->get($k_page), $this->ttl);
+            }
+            if ($this->etag) {
+                $this->cache->set($k_etag, $options['etag'], $this->ttl);
+            }
+            if ($this->lastModified) {
+                $this->cache->set($k_last, $options['last_modified'], $this->ttl);
+            }
 
             return $response;
         }
@@ -191,7 +224,10 @@ class CacheControl implements Responsable
          * 2. Get response with fresh data,
          *      get fresh headers values.
          */
-        $response = $this->response($request);
+        $response = $this->response($request,
+            // Reuse cached content
+            $this->content ? $this->cache->get($k_page) : null
+        );
 
         // Update cache with actual values
         if ($this->etag === true) {
@@ -212,8 +248,15 @@ class CacheControl implements Responsable
         $response->isNotModified($request);
 
         // Touch cache
-        $this->cache->set($k_etag, $options['etag'], $this->ttl);
-        $this->cache->set($k_last, $options['last_modified'], $this->ttl);
+        if ($this->content) {
+            $this->cache->set($k_page, $response->getContent(), $this->ttl);
+        }
+        if ($this->etag) {
+            $this->cache->set($k_etag, $options['etag'], $this->ttl);
+        }
+        if ($this->lastModified) {
+            $this->cache->set($k_last, $options['last_modified'], $this->ttl);
+        }
 
         return $response;
     }
