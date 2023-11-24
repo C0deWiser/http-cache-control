@@ -61,7 +61,7 @@ use \Codewiser\HttpCacheControl\CacheControl;
 
 public function index(Request $request)
 {
-    return CacheControl::make((new Order)->cache(), 
+    return CacheControl::make(Order::class, 
         fn() => OrderResource::collection(Order::all()))
     ->etag()
     // the same as
@@ -70,7 +70,7 @@ public function index(Request $request)
 
 public function show(Request $request, Order $order)
 {
-    return CacheControl::make($order->cache(), 
+    return CacheControl::make($order, 
         fn() => OrderResource::make($order))
     ->lastModified(fn() => $order->updated_at);
 }
@@ -85,7 +85,7 @@ use \Codewiser\HttpCacheControl\CacheControl;
 
 public function index(Request $request)
 {
-    return CacheControl::make((new Order)->cache(), 
+    return CacheControl::make(Order::class, 
         fn(Request $request) => OrderResource::collection(Order::query()
             ->whereBelongsTo($request->user())))
     ->private($request->user())

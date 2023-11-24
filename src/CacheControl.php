@@ -3,8 +3,11 @@
 namespace Codewiser\HttpCacheControl;
 
 use Closure;
+use Codewiser\HttpCacheControl\Contracts\Cacheable;
+use DateInterval;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Responsable;
+use InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
 use Symfony\Component\HttpFoundation\Response as BaseResponse;
 
@@ -14,21 +17,48 @@ class CacheControl implements Responsable
     protected bool|Closure $etag;
     protected bool|Closure $lastModified;
     protected Closure $locale;
-    protected \DateInterval|int|null $ttl = null;
+    protected DateInterval|int|null $ttl = null;
 
-    public static function make(CacheInterface $cache, Closure $response): static
+    /**
+     * Make CacheControl instance using CacheInterface or Cacheable model or name of Cacheable model class.
+     *
+     * @param  CacheInterface|Cacheable|string  $cache
+     * @param  Closure  $response
+     *
+     * @return static
+     */
+    public static function make(CacheInterface|Cacheable|string $cache, Closure $response): static
     {
+        if (is_string($cache)) {
+            if (class_exists($cache)) {
+                $cache = new $cache;
+            } else {
+                throw new InvalidArgumentException(__('Class :class doesnt exist', ['class' => $cache]));
+            }
+        }
+
+        if (!($cache instanceof CacheInterface)) {
+            if ($cache instanceof Cacheable) {
+                $cache = $cache->cache();
+            } else {
+                throw new InvalidArgumentException(__(':Model should implement :contract', [
+                    'model' => get_class($cache),
+                    'contract' => Cacheable::class
+                ]));
+            }
+        }
+
         return new static($cache, $response);
     }
 
     public function __construct(
         protected CacheInterface $cache,
-        protected Closure        $response
-    )
-    {
+        protected Closure $response
+    ) {
+        // Set defaults
         $this->etag = false;
         $this->lastModified = false;
-        $this->locale = fn() => app()->getLocale();
+        $this->locale(fn() => app()->getLocale());
     }
 
     /**
@@ -43,7 +73,7 @@ class CacheControl implements Responsable
         return $this;
     }
 
-    public function ttl(\DateInterval|int|null $ttl = null): static
+    public function ttl(DateInterval|int|null $ttl = null): static
     {
         $this->ttl = $ttl;
 
@@ -132,8 +162,8 @@ class CacheControl implements Responsable
             call_user_func($this->locale),
         ]));
 
-        $k_etag = $key . '/etag';
-        $k_last = $key . '/last_modified';
+        $k_etag = $key.'/etag';
+        $k_last = $key.'/last_modified';
 
         $options = [
             'etag'          => $this->cache->get($k_etag),
