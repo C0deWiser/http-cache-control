@@ -25,36 +25,27 @@ Here is example of implementation. Classes share cache tag, so changing any
 Model invalidates shared cache.
 
 ```php
-use \Illuminate\Support\Facades\Cache;
-use \Illuminate\Cache\TaggedCache;
+use Codewiser\HttpCacheControl\Contracts\Cacheable;
+use Codewiser\HttpCacheControl\Traits\InvalidatesCache;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
+use Psr\SimpleCache\CacheInterface;
 
-class User extends Model
+class User extends Model implements Cacheable
 {
-    protected static function booted(): void
-    {
-        static::saved(function (User $user) {
-            $user::cache()->flush();
-        });
-        // etc...
-    }
+    use InvalidatesCache;
     
-    public static function cache(): TaggedCache
+    public function cache(): CacheInterface
     {
         return Cache::tags(['user', 'order']);
     }
 }
 
-class Order extends Model
+class Order extends Model implements Cacheable
 {
-    protected static function booted(): void
-    {
-        static::saved(function (Order $order) {
-            $order::cache()->flush();
-        });
-        // etc...
-    }
+    use InvalidatesCache;
     
-    public static function cache(): TaggedCache
+    public function cache(): CacheInterface
     {
         return Cache::tags(['order', 'user']);
     }
@@ -70,7 +61,7 @@ use \Codewiser\HttpCacheControl\CacheControl;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::cache(), 
+    return CacheControl::make((new Order)->cache(), 
         fn() => OrderResource::collection(Order::all()))
     ->etag()
     // the same as
@@ -79,7 +70,7 @@ public function index(Request $request)
 
 public function show(Request $request, Order $order)
 {
-    return CacheControl::make($order::cache(), 
+    return CacheControl::make($order->cache(), 
         fn() => OrderResource::make($order))
     ->lastModified(fn() => $order->updated_at);
 }
@@ -94,7 +85,7 @@ use \Codewiser\HttpCacheControl\CacheControl;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::cache(), 
+    return CacheControl::make((new Order)->cache(), 
         fn(Request $request) => OrderResource::collection(Order::query()
             ->whereBelongsTo($request->user())))
     ->private($request->user())
