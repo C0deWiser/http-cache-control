@@ -140,12 +140,12 @@ class CacheControl implements Responsable
     {
         $response = call_user_func($this->response, $request);
 
-        if (!($response instanceof BaseResponse)) {
-            $response = response()->make($response);
-        }
-
         while ($response instanceof Responsable) {
             $response = $response->toResponse($request);
+        }
+
+        if (!($response instanceof BaseResponse)) {
+            $response = response()->make($response);
         }
 
         return $response;
