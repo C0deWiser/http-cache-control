@@ -60,6 +60,7 @@ class CacheControl implements Responsable
     ) {
         // Set defaults
         $this->etag = false;
+        $this->content = false;
         $this->lastModified = false;
         $this->locale(fn() => app()->getLocale());
     }
@@ -176,11 +177,17 @@ class CacheControl implements Responsable
 
     protected function prefix(Request $request): string
     {
+        $headers = array_filter(
+            $request->headers->all(),
+            fn($name) => str_starts_with($name, 'accept'),
+            ARRAY_FILTER_USE_KEY
+        );
+
         return md5(json_encode([
             $this->private,
             $request->method(),
             $request->path(),
-            Arr::except($request->headers->all(), 'cookie'),
+            $headers,
             $request->all(),
             call_user_func($this->locale),
         ]));
