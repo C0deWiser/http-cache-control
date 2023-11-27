@@ -7,6 +7,8 @@ use Codewiser\HttpCacheControl\Contracts\Cacheable;
 use DateInterval;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
 use Symfony\Component\HttpFoundation\Response as BaseResponse;
@@ -172,43 +174,45 @@ class CacheControl implements Responsable
         return $response;
     }
 
-    public function toResponse($request)
+    protected function prefix(Request $request): string
     {
-        $key = md5(json_encode([
+        return md5(json_encode([
             $this->private,
             $request->method(),
             $request->path(),
-            $request->headers->all(),
+            Arr::except($request->headers->all(), 'cookie'),
             $request->all(),
             call_user_func($this->locale),
         ]));
+    }
+
+    public function toResponse($request)
+    {
+        $key = $this->prefix($request);
 
         $k_etag = $key.'/etag';
         $k_last = $key.'/last_modified';
         $k_page = $key.'/content';
 
-        $options = [];
-
+        // Read cached values
+        $content = $this->cache->get($k_page);
+        $options = ['no_cache' => true];
         if ($this->etag) {
             $options['etag'] = $this->cache->get($k_etag);
         }
         if ($this->lastModified) {
             $options['last_modified'] = $this->cache->get($k_last);
         }
+        if ($this->private) {
+            $options['private'] = true;
+        } else {
+            $options['public'] = true;
+        }
 
-        /**
-         * 1. Make empty response,
-         *      set etag and last_modified headers from cache,
-         *      check if response is not modified?
-         */
-        $response = response()->make();
-        $response->setCache($options);
-
-        if ($response->isNotModified($request)) {
-
-            // Touch cache
+        // Update cache callback (reusable)
+        $touch = function(array $options, ?string $content) use ($k_page, $k_etag, $k_last) {
             if ($this->content) {
-                $this->cache->set($k_page, $this->cache->get($k_page), $this->ttl);
+                $this->cache->set($k_page, $content, $this->ttl);
             }
             if ($this->etag) {
                 $this->cache->set($k_etag, $options['etag'], $this->ttl);
@@ -216,6 +220,19 @@ class CacheControl implements Responsable
             if ($this->lastModified) {
                 $this->cache->set($k_last, $options['last_modified'], $this->ttl);
             }
+        };
+
+        /**
+         * 1. Make empty response,
+         *      set etag and last_modified headers from cache,
+         *      check if response is not modified?
+         */
+        $response = response()->make()->setCache($options);
+
+        if ($response->isNotModified($request)) {
+
+            // Touch cache
+            $touch($options, $content);
 
             return $response;
         }
@@ -226,12 +243,14 @@ class CacheControl implements Responsable
          */
         $response = $this->response($request,
             // Reuse cached content
-            $this->content ? $this->cache->get($k_page) : null
+            $this->content ? $content : null
         );
 
-        // Update cache with actual values
+        // Update variables with actual values
+        $content = $response->getContent();
+
         if ($this->etag === true) {
-            $options['etag'] = md5($response->getContent());
+            $options['etag'] = md5($content);
         } elseif (is_callable($this->etag)) {
             $options['etag'] = call_user_func($this->etag, $response);
         }
@@ -244,19 +263,12 @@ class CacheControl implements Responsable
          * 3. Fill response with that headers
          *      and check if response is not modified one more time.
          */
-        $response->setCache($options);
-        $response->isNotModified($request);
+        $response
+            ->setCache($options)
+            ->isNotModified($request);
 
         // Touch cache
-        if ($this->content) {
-            $this->cache->set($k_page, $response->getContent(), $this->ttl);
-        }
-        if ($this->etag) {
-            $this->cache->set($k_etag, $options['etag'], $this->ttl);
-        }
-        if ($this->lastModified) {
-            $this->cache->set($k_last, $options['last_modified'], $this->ttl);
-        }
+        $touch($options, $content);
 
         return $response;
     }
