@@ -8,7 +8,6 @@ use DateInterval;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Psr\SimpleCache\CacheInterface;
 use Symfony\Component\HttpFoundation\Response as BaseResponse;
@@ -21,6 +20,7 @@ class CacheControl implements Responsable
     protected bool $content;
     protected Closure $locale;
     protected DateInterval|int|null $ttl = null;
+    protected array $options = [];
 
     /**
      * Make CacheControl instance using CacheInterface or Cacheable model or name of Cacheable model class.
@@ -80,6 +80,13 @@ class CacheControl implements Responsable
     public function ttl(DateInterval|int|null $ttl = null): static
     {
         $this->ttl = $ttl;
+
+        return $this;
+    }
+
+    public function options(array $options): static
+    {
+        $this->options = $options;
 
         return $this;
     }
@@ -203,7 +210,7 @@ class CacheControl implements Responsable
 
         // Read cached values
         $content = $this->cache->get($k_page);
-        $options = ['no_cache' => true];
+        $options = $this->options;
         if ($this->etag) {
             $options['etag'] = $this->cache->get($k_etag);
         }

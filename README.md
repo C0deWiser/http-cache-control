@@ -63,6 +63,13 @@ public function index(Request $request)
 {
     return CacheControl::make(Order::class, 
         fn() => OrderResource::collection(Order::all()))
+    
+    // Set any Cache-Control directives
+    ->options([
+        'max_age' => 600,
+    ])
+    
+    // Add ETag header to the response
     ->etag()
     // the same as
     ->etag(fn($response) => md5($response->getContent()));
@@ -72,6 +79,8 @@ public function show(Request $request, Order $order)
 {
     return CacheControl::make($order, 
         fn() => OrderResource::make($order))
+        
+    // Add Last-Modified header to the response
     ->lastModified(fn() => $order->updated_at);
 }
 ```
