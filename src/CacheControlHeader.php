@@ -51,6 +51,6 @@ class CacheControlHeader implements Arrayable
             'no_transform'           => $this->no_transform,
             'proxy_revalidate'       => $this->proxy_revalidate,
             'immutable'              => $this->immutable,
-        ]);
+        ], fn($value) => !is_null($value));
     }
 }
