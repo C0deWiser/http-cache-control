@@ -123,6 +123,25 @@ class CacheControl implements Responsable
     }
 
     /**
+     * Resolve Cache-Control options
+     */
+    protected function getOptions($request): array
+    {
+        $options = $this->options;
+
+        if (is_callable($options)) {
+
+            $options = call_user_func($options, $request);
+
+            if ($options instanceof Arrayable) {
+                $options = $options->toArray();
+            }
+        }
+
+        return $options;
+    }
+
+    /**
      * Add Expires response header.
      */
     public function expires(\DateTimeInterface $expires): static
@@ -292,8 +311,10 @@ class CacheControl implements Responsable
             ARRAY_FILTER_USE_KEY
         );
 
+        $options = $this->getOptions($request);
+
         // Private option means that cache is user dependent.
-        if ($this->options['private'] ?? null || !($this->options['public'] ?? false)) {
+        if ($options['private'] ?? null || !($options['public'] ?? false)) {
             $user = $request->user()?->getAuthIdentifier();
         } else {
             $user = null;
@@ -326,14 +347,7 @@ class CacheControl implements Responsable
         // Read cached values
         $content = $this->cache->get($k_page);
 
-        // Resolve Cache-Control options
-        $options = $this->options;
-        if (is_callable($options)) {
-            $options = call_user_func($options, $request);
-            if ($options instanceof Arrayable) {
-                $options = $options->toArray();
-            }
-        }
+        $options = $this->getOptions($request);
 
         if ($this->etag) {
             $options['etag'] = $this->cache->get($k_etag);
