@@ -28,7 +28,7 @@ class CacheControl implements Responsable
      */
     protected Closure $locale;
     protected DateInterval|int|null $ttl = null;
-    protected array $options = [];
+    protected array|\Closure $options = [];
     protected ?\DateTimeInterface $expires = null;
     protected ?array $vary = null;
 
@@ -111,7 +111,7 @@ class CacheControl implements Responsable
     /**
      * Set Cache-Control response header value.
      */
-    public function cacheControl(array|Arrayable $options): static
+    public function cacheControl(array|Arrayable|\Closure $options): static
     {
         if ($options instanceof Arrayable) {
             $options = $options->toArray();
@@ -325,7 +325,16 @@ class CacheControl implements Responsable
 
         // Read cached values
         $content = $this->cache->get($k_page);
+
+        // Resolve Cache-Control options
         $options = $this->options;
+        if (is_callable($options)) {
+            $options = call_user_func($options, $request);
+            if ($options instanceof Arrayable) {
+                $options = $options->toArray();
+            }
+        }
+
         if ($this->etag) {
             $options['etag'] = $this->cache->get($k_etag);
         }

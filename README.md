@@ -67,7 +67,7 @@ public function index(Request $request)
     return CacheControl::make(Order::class, function() {
         return OrderResource::collection(Order::all())
     })
-        ->cacheControl(new CacheControlHeader(
+        ->cacheControl(fn(Request $request) => new CacheControlHeader(
             public: true,
             max_age: 1800,
             must_revalidate: true,
