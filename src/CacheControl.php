@@ -23,9 +23,6 @@ class CacheControl implements Responsable
     protected bool|Closure $etag;
     protected bool|Closure $lastModified;
     protected bool $content;
-    /**
-     * @deprecated
-     */
     protected Closure $locale;
     protected DateInterval|int|null $ttl = null;
     protected array|\Closure $options = [];
@@ -79,7 +76,6 @@ class CacheControl implements Responsable
      * Just for testing.
      *
      * @internal
-     * @deprecated
      */
     public function locale(string|Closure $locale): static
     {
@@ -331,7 +327,9 @@ class CacheControl implements Responsable
             // maybe user key
             $user,
             // vary headers with their values
-            $headers
+            $headers,
+            // app locale
+            call_user_func($this->locale)
         ]));
     }
 
