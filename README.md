@@ -16,25 +16,24 @@ Model invalidates shared cache.
 
 ```php
 use Codewiser\HttpCacheControl\Contracts\Cacheable;
-use Codewiser\HttpCacheControl\Traits\InvalidatesCache;
+use Codewiser\HttpCacheControl\Observers\InvalidatesCache;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Psr\SimpleCache\CacheInterface;
 
+#[ObservedBy(InvalidatesCache::class)]
 class User extends Model implements Cacheable
 {
-    use InvalidatesCache;
-    
     public function cache(): CacheInterface
     {
         return Cache::tags(['user', 'order']);
     }
 }
 
+#[ObservedBy(InvalidatesCache::class)]
 class Order extends Model implements Cacheable
 {
-    use InvalidatesCache;
-    
     public function cache(): CacheInterface
     {
         return Cache::tags(['order', 'user']);
