@@ -5,6 +5,7 @@ namespace Codewiser\HttpCacheControl;
 use Closure;
 use Codewiser\HttpCacheControl\Contracts\Cacheable;
 use DateInterval;
+use DateTimeInterface;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
@@ -20,13 +21,31 @@ class CacheControl implements Responsable
      * @deprecated
      */
     protected int $private = 0;
+
+    /**
+     * Add Etag response header (with given value).
+     *
+     * @var bool|Closure(Request): (string)
+     */
     protected bool|Closure $etag;
+
+    /**
+     * Add Last-Modified response header with given value.
+     *
+     * @var bool|Closure(Request): (DateTimeInterface|integer)
+     */
     protected bool|Closure $lastModified;
-    protected bool $content;
+
+    /**
+     * Cache entire response (using given cache key).
+     *
+     * @var bool|Closure(Request): (string)
+     */
+    protected bool|Closure $content;
     protected Closure $locale;
     protected DateInterval|int|null $ttl = null;
     protected array|\Closure $options = [];
-    protected ?\DateTimeInterface $expires = null;
+    protected ?DateTimeInterface $expires = null;
     protected ?array $vary = null;
 
     /**
@@ -140,7 +159,7 @@ class CacheControl implements Responsable
     /**
      * Add Expires response header.
      */
-    public function expires(\DateTimeInterface $expires): static
+    public function expires(DateTimeInterface $expires): static
     {
         $this->expires = $expires;
 
@@ -213,6 +232,8 @@ class CacheControl implements Responsable
 
     /**
      * Add Last-Modified response header.
+     *
+     * @param Closure(Request): (DateTimeInterface|integer)  $closure Use callback to provide last modified timestamp.
      */
     public function lastModified(Closure $closure): static
     {
@@ -239,6 +260,8 @@ class CacheControl implements Responsable
 
     /**
      * Add ETag response header. If no closure provided, the ETag will be calculated from response content.
+     *
+     * @param  bool|Closure(Request): (string)  $closure  Use callback to provide etag value.
      */
     public function etag(bool|Closure $closure = true): static
     {
@@ -249,6 +272,7 @@ class CacheControl implements Responsable
 
     /**
      * Cache and reuse entire response content.
+     *
      * @deprecated
      */
     public function content(bool $content = true): static
@@ -260,8 +284,10 @@ class CacheControl implements Responsable
 
     /**
      * Cache and reuse entire response content.
+     *
+     * @param  bool|Closure(Request): (string)  $content  Use callback to provide cache key.
      */
-    public function remember(bool $content = true): static
+    public function remember(bool|Closure $content = true): static
     {
         $this->content = $content;
 
@@ -342,6 +368,10 @@ class CacheControl implements Responsable
         $k_last = $key.'/last_modified';
         $k_page = $key.'/content';
 
+        if (is_callable($this->content)) {
+            $k_page.= '/'.md5(call_user_func($this->content, $request));
+        }
+
         // Read cached values
         $content = $this->cache->get($k_page);
 
@@ -401,16 +431,16 @@ class CacheControl implements Responsable
             $options['etag'] = md5($content);
         } elseif (is_callable($this->etag)) {
             // Explicit etag
-            $options['etag'] = call_user_func($this->etag, $response);
+            $options['etag'] = call_user_func($this->etag, $request);
         }
 
         if (is_callable($this->lastModified)) {
             // Explicit last_modified
-            $last_modified = call_user_func($this->lastModified);
+            $last_modified = call_user_func($this->lastModified, $request);
             if (is_int($last_modified)) {
                 $last_modified = Carbon::createFromTimestamp($last_modified);
             }
-            if ($last_modified instanceof \DateTimeInterface) {
+            if ($last_modified instanceof DateTimeInterface) {
                 $options['last_modified'] = $last_modified;
             } else {
                 throw new InvalidArgumentException('Last-Modified must be a timestamp or an instance of DateTimeInterface');
