@@ -343,7 +343,7 @@ class CacheControl implements Responsable
         }
 
         // Cache depends on:
-        return md5(json_encode([
+        return 'cache-control:' . md5(json_encode([
             // method
             $request->method(),
             // path
