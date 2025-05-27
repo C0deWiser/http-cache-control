@@ -63,9 +63,10 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function() {
-        return OrderResource::collection(Order::all())
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn() => OrderResource::collection(Order::all())
+    )
         ->cacheControl(fn(Request $request) => new CacheControlHeader(
             public: true,
             max_age: 1800,
@@ -88,9 +89,10 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function() {
-        return OrderResource::collection(Order::all())
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn() => OrderResource::collection(Order::all())
+    )
         ->expires(now()->addHour());
 }
 ```
@@ -99,7 +101,7 @@ public function index(Request $request)
 
 ### Caching entire response
 
-You may want to cache entire response:
+You may want to cache the entire response:
 
 ```php
 use Codewiser\HttpCacheControl\CacheControl;
@@ -107,9 +109,10 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function() {
-        return OrderResource::collection(Order::all())
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn() => OrderResource::collection(Order::all())
+    )
         ->remember()
         ->cacheControl(new CacheControlHeader(
             public: true,
@@ -132,10 +135,12 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function(Request $request) {
-        return OrderResource::collection(Order::all())
-            ->whereBelongsTo($request->user()
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn(Request $request) => OrderResource::collection(
+            Order::query()->whereBelongsTo($request->user())->get()
+        )
+    )
         ->cacheControl(new CacheControlHeader(
             private: true,
             max_age: new DateInterval('PT1H'),
@@ -157,9 +162,10 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function() {
-        return OrderResource::collection(Order::all())
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn() => OrderResource::collection(Order::all())
+    )
         ->vary('Accept-Language')
         ->cacheControl(new CacheControlHeader(
             public: true,
@@ -184,9 +190,10 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function() {
-        return OrderResource::collection(Order::all())
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn() => OrderResource::collection(Order::all())
+    )
         ->cacheControl(['public' => true])
         // Implicit
         ->etag()
@@ -206,9 +213,10 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(Order::class, function() {
-        return OrderResource::collection(Order::all())
-    })
+    return CacheControl::make(
+        Order::class, 
+        fn() => OrderResource::collection(Order::all())
+    )
         ->cacheControl(['public' => true])
         // Return timestamp or DateTimeInterface
         ->lastModified(fn() => Order::all()->max('updated_at'));
