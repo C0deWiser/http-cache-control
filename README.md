@@ -50,7 +50,7 @@ First argument must be a `\Psr\SimpleCache\CacheInterface`,
 or `\Codewiser\HttpCacheControl\Contracts\Cacheable`, or classname of a Model,
 that implements that interface.
 
-Second argument is a callback, that should return response content. This
+The second argument is a callback, that should return response content. This
 callback would be called only if necessary.
 
 ### `Cache-Control` header
@@ -63,9 +63,8 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
-        fn() => OrderResource::collection(Order::all())
+    return CacheControl::make(Order::class, 
+        fn(Request $request) => OrderResource::collection(Order::all())
     )
         ->cacheControl(fn(Request $request) => new CacheControlHeader(
             public: true,
@@ -89,9 +88,8 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
-        fn() => OrderResource::collection(Order::all())
+    return CacheControl::make(Order::class, 
+        fn(Request $request) => OrderResource::collection(Order::all())
     )
         ->expires(now()->addHour());
 }
@@ -109,9 +107,8 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
-        fn() => OrderResource::collection(Order::all())
+    return CacheControl::make(Order::class, 
+        fn(Request $request) => OrderResource::collection(Order::all())
     )
         ->remember()
         ->cacheControl(new CacheControlHeader(
@@ -135,8 +132,7 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
+    return CacheControl::make(Order::class, 
         fn(Request $request) => OrderResource::collection(
             Order::query()->whereBelongsTo($request->user())->get()
         )
@@ -162,9 +158,8 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
-        fn() => OrderResource::collection(Order::all())
+    return CacheControl::make(Order::class, 
+        fn(Request $request) => OrderResource::collection(Order::all())
     )
         ->vary('Accept-Language')
         ->cacheControl(new CacheControlHeader(
@@ -190,9 +185,8 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
-        fn() => OrderResource::collection(Order::all())
+    return CacheControl::make(Order::class, 
+        fn(Request $request) => OrderResource::collection(Order::all())
     )
         ->cacheControl(['public' => true])
         // Implicit
@@ -213,9 +207,8 @@ use Codewiser\HttpCacheControl\CacheControlHeader;
 
 public function index(Request $request)
 {
-    return CacheControl::make(
-        Order::class, 
-        fn() => OrderResource::collection(Order::all())
+    return CacheControl::make(Order::class, 
+        fn(Request $request) => OrderResource::collection(Order::all())
     )
         ->cacheControl(['public' => true])
         // Return timestamp or DateTimeInterface
